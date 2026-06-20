@@ -7,7 +7,7 @@ use App\Exceptions\BusinessException;
 use App\Models\Role;
 use App\Models\Permission;
 
-class PermissionService
+class AuthorizationService
 {
     public function checkPermission(string $permissionName, ?string $guard = null): bool
     {
