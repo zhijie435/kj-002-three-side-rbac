@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { routes as shearerlineRoutes } from '@/extensions/shearerline'
 
 const routes = [
   {
@@ -17,6 +18,7 @@ const routes = [
     component: () => import('@/views/permission/Index.vue'),
     meta: { title: '权限管理' },
   },
+  ...shearerlineRoutes,
 ]
 
 const router = createRouter({

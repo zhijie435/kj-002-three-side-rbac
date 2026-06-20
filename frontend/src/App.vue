@@ -73,6 +73,14 @@
               </template>
               <el-menu-item index="/inventory/list">库存列表</el-menu-item>
             </el-sub-menu>
+            <el-sub-menu index="/shearerline">
+              <template #title>
+                <el-icon><Tools /></el-icon>
+                <span>剪切线管理</span>
+              </template>
+              <el-menu-item index="/shearerline/list">剪切线列表</el-menu-item>
+              <el-menu-item index="/shearerline/tasks">任务管理</el-menu-item>
+            </el-sub-menu>
           </el-menu>
         </el-aside>
         <el-main class="main-content">
@@ -91,6 +99,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Tools } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const activeMenu = computed(() => route.path)
@@ -107,12 +116,24 @@ const handleCommand = (command) => {
 <style scoped>
 .app-container {
   height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.app-container :deep(.el-container) {
+  height: 100%;
+}
+
+.app-container :deep(.el-header) {
+  height: 60px !important;
+  flex-shrink: 0;
 }
 
 .header {
   background: #fff;
   border-bottom: 1px solid #e4e7ed;
   padding: 0;
+  height: 60px;
 }
 
 .header-content {
@@ -149,12 +170,22 @@ const handleCommand = (command) => {
 
 .sidebar {
   background: #001529;
+  height: calc(100vh - 60px);
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.sidebar :deep(.el-menu) {
+  border-right: none;
 }
 
 .main-content {
   background: #f5f7fa;
   padding: 20px;
   overflow-y: auto;
+  overflow-x: hidden;
+  height: calc(100vh - 60px);
+  box-sizing: border-box;
 }
 
 .fade-enter-active,

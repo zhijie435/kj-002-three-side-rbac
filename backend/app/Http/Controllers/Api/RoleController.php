@@ -33,23 +33,38 @@ class RoleController extends Controller
         $perPage = $request->input('per_page', 15);
         $roles = $query->paginate($perPage);
 
-        $statsQuery = Role::query();
-        if ($request->filled('keyword')) {
-            $keyword = $request->input('keyword');
-            $statsQuery->where(function ($q) use ($keyword) {
-                $q->where('name', 'like', "%{$keyword}%")
-                    ->orWhere('display_name', 'like', "%{$keyword}%")
-                    ->orWhere('description', 'like', "%{$keyword}%");
-            });
-        }
-        if ($request->filled('status')) {
-            $statsQuery->where('status', $request->input('status') === '1');
-        }
+        $keywordFilter = function ($q) use ($request) {
+            if ($request->filled('keyword')) {
+                $keyword = $request->input('keyword');
+                $q->where(function ($query) use ($keyword) {
+                    $query->where('name', 'like', "%{$keyword}%")
+                        ->orWhere('display_name', 'like', "%{$keyword}%")
+                        ->orWhere('description', 'like', "%{$keyword}%");
+                });
+            }
+        };
 
-        $totalCount = (clone $statsQuery)->count();
-        $activeCount = (clone $statsQuery)->where('status', true)->count();
-        $inactiveCount = (clone $statsQuery)->where('status', false)->count();
-        $systemCount = (clone $statsQuery)->where('is_system', true)->count();
+        $totalQuery = Role::query();
+        $keywordFilter($totalQuery);
+        if ($request->filled('status')) {
+            $totalQuery->where('status', $request->input('status') === '1');
+        }
+        $totalCount = $totalQuery->count();
+
+        $activeQuery = Role::query();
+        $keywordFilter($activeQuery);
+        $activeCount = $activeQuery->where('status', true)->count();
+
+        $inactiveQuery = Role::query();
+        $keywordFilter($inactiveQuery);
+        $inactiveCount = $inactiveQuery->where('status', false)->count();
+
+        $systemQuery = Role::query();
+        $keywordFilter($systemQuery);
+        if ($request->filled('status')) {
+            $systemQuery->where('status', $request->input('status') === '1');
+        }
+        $systemCount = $systemQuery->where('is_system', true)->count();
 
         return response()->json([
             'code' => 0,

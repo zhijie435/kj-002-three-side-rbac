@@ -11,7 +11,7 @@
     </div>
 
     <el-row :gutter="16" style="margin-bottom: 20px">
-      <el-col :span="6">
+      <el-col :xs="24" :sm="12" :md="12" :lg="6" :xl="6">
         <div class="stat-card">
           <div class="stat-icon primary">
             <el-icon :size="28"><UserFilled /></el-icon>
@@ -22,7 +22,7 @@
           </div>
         </div>
       </el-col>
-      <el-col :span="6">
+      <el-col :xs="24" :sm="12" :md="12" :lg="6" :xl="6">
         <div class="stat-card">
           <div class="stat-icon success">
             <el-icon :size="28"><CircleCheck /></el-icon>
@@ -33,7 +33,7 @@
           </div>
         </div>
       </el-col>
-      <el-col :span="6">
+      <el-col :xs="24" :sm="12" :md="12" :lg="6" :xl="6">
         <div class="stat-card">
           <div class="stat-icon warning">
             <el-icon :size="28"><Warning /></el-icon>
@@ -44,7 +44,7 @@
           </div>
         </div>
       </el-col>
-      <el-col :span="6">
+      <el-col :xs="24" :sm="12" :md="12" :lg="6" :xl="6">
         <div class="stat-card">
           <div class="stat-icon danger">
             <el-icon :size="28"><Lock /></el-icon>
@@ -104,6 +104,7 @@
       border
       stripe
       style="width: 100%"
+      :max-height="tableMaxHeight"
       :default-sort="{ prop: 'sort_order', order: 'ascending' }"
     >
       <el-table-column type="index" label="#" width="60" align="center" />
@@ -281,38 +282,40 @@
           />
         </el-form-item>
         <el-form-item label="权限配置">
-          <div style="width: 100%">
+          <div class="permission-config-wrapper">
             <div v-if="isView" style="color: #909399; font-size: 13px; margin-bottom: 8px">
               该角色拥有以下权限：
             </div>
-            <div
-              v-for="group in permissionTree"
-              :key="group.group"
-              class="permission-group"
-            >
-              <div class="permission-group-title">
-                <el-checkbox
-                  v-if="!isView"
-                  v-model="group.checkedAll"
-                  :indeterminate="group.isIndeterminate"
-                  @change="handleCheckAllGroup($event, group)"
-                >
-                  {{ group.group_name }}
-                </el-checkbox>
-                <span v-else style="font-weight: 600">{{ group.group_name }}</span>
-              </div>
-              <div style="display: flex; flex-wrap: wrap">
-                <el-checkbox
-                  v-for="item in group.children"
-                  :key="item.id"
-                  v-model="formData.permissions"
-                  :label="item.id"
-                  :disabled="isView"
-                  class="permission-checkbox"
-                  @change="handlePermissionChange(group)"
-                >
-                  {{ item.display_name }}
-                </el-checkbox>
+            <div class="permission-scroll-container">
+              <div
+                v-for="group in permissionTree"
+                :key="group.group"
+                class="permission-group"
+              >
+                <div class="permission-group-title">
+                  <el-checkbox
+                    v-if="!isView"
+                    v-model="group.checkedAll"
+                    :indeterminate="group.isIndeterminate"
+                    @change="handleCheckAllGroup($event, group)"
+                  >
+                    {{ group.group_name }}
+                  </el-checkbox>
+                  <span v-else style="font-weight: 600">{{ group.group_name }}</span>
+                </div>
+                <div class="permission-list">
+                  <el-checkbox
+                    v-for="item in group.children"
+                    :key="item.id"
+                    v-model="formData.permissions"
+                    :label="item.id"
+                    :disabled="isView"
+                    class="permission-checkbox"
+                    @change="handlePermissionChange(group)"
+                  >
+                    {{ item.display_name }}
+                  </el-checkbox>
+                </div>
               </div>
             </div>
           </div>
@@ -403,7 +406,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Plus,
@@ -441,6 +444,37 @@ const currentRole = ref(null)
 const roleList = ref([])
 const permissionTree = ref([])
 const formRef = ref(null)
+const tableMaxHeight = ref(400)
+
+const calculateTableHeight = () => {
+  nextTick(() => {
+    const headerHeight = 60
+    const mainPadding = 40
+    const pageHeaderHeight = 100
+    const statCardsHeight = 140
+    const filterBarHeight = 80
+    const toolbarHeight = 50
+    const paginationHeight = 60
+    const otherSpacing = 40
+
+    const availableHeight =
+      window.innerHeight -
+      headerHeight -
+      mainPadding -
+      pageHeaderHeight -
+      statCardsHeight -
+      filterBarHeight -
+      toolbarHeight -
+      paginationHeight -
+      otherSpacing
+
+    tableMaxHeight.value = Math.max(availableHeight, 300)
+  })
+}
+
+const handleResize = () => {
+  calculateTableHeight()
+}
 
 const filterForm = reactive({
   keyword: '',
@@ -778,6 +812,100 @@ async function handleSubmit() {
 }
 
 onMounted(() => {
+  calculateTableHeight()
   fetchRoleList()
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
 })
 </script>
+
+<style scoped>
+.permission-config-wrapper {
+  width: 100%;
+}
+
+.permission-scroll-container {
+  max-height: 280px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 8px;
+}
+
+.permission-scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.permission-scroll-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.permission-scroll-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.permission-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+.permission-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+}
+
+:deep(.el-dialog) {
+  margin-top: 5vh !important;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+:deep(.el-dialog .el-dialog__header) {
+  flex-shrink: 0;
+  margin-right: 0;
+  padding-bottom: 15px;
+}
+
+:deep(.el-dialog .el-dialog__body) {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px;
+  padding-right: 12px;
+  box-sizing: border-box;
+  max-height: none;
+}
+
+:deep(.el-dialog .el-dialog__footer) {
+  flex-shrink: 0;
+  border-top: 1px solid #e4e7ed;
+  padding-top: 15px;
+  padding-bottom: 15px;
+  padding-right: 20px;
+  text-align: right;
+}
+
+:deep(.el-dialog__body)::-webkit-scrollbar {
+  width: 6px;
+}
+
+:deep(.el-dialog__body)::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+:deep(.el-dialog__body)::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+:deep(.el-dialog__body)::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+</style>
