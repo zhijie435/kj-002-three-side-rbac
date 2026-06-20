@@ -490,6 +490,14 @@ import {
   toggleRoleStatus,
   getPermissionTree,
 } from '@/api/role'
+import {
+  getGuardName,
+  getGuardTagType,
+  getGroupName,
+  formatPermissionsByGroup,
+} from '@/utils/permission'
+import { formatDate } from '@/utils/common'
+import { showError, showSuccess, AppError } from '@/utils/errorHandler'
 
 const loading = ref(false)
 const submitLoading = ref(false)
@@ -502,7 +510,6 @@ const permissionTree = ref([])
 const formRef = ref(null)
 const tableMaxHeight = ref(400)
 const activeGuard = ref('platform')
-const mainContentEl = ref(null)
 
 const calculateTableHeight = () => {
   nextTick(() => {
@@ -592,18 +599,7 @@ const dialogTitle = computed(() => {
 
 const groupedPermissions = computed(() => {
   if (!currentRole.value?.permissions) return []
-  const groups = {}
-  currentRole.value.permissions.forEach((perm) => {
-    if (!groups[perm.group]) {
-      groups[perm.group] = {
-        group: perm.group,
-        group_name: getGroupName(perm.group),
-        permissions: [],
-      }
-    }
-    groups[perm.group].permissions.push(perm)
-  })
-  return Object.values(groups)
+  return formatPermissionsByGroup(currentRole.value.permissions)
 })
 
 function getRoleIcon(name) {
@@ -615,53 +611,6 @@ function getRoleIcon(name) {
     warehouse: Box,
   }
   return icons[name] || User
-}
-
-function getGroupName(group) {
-  const names = {
-    user: '用户管理',
-    role: '角色管理',
-    permission: '权限管理',
-    order: '订单管理',
-    product: '商品管理',
-    inventory: '库存管理',
-    system: '系统设置',
-    dashboard: '数据面板',
-    merchant: '商家管理',
-    staff: '员工管理',
-    warehouse: '仓库管理',
-  }
-  return names[group] || group
-}
-
-function getGuardName(guard) {
-  const names = {
-    platform: '平台端',
-    merchant: '商家端',
-    warehouse: '仓库端',
-  }
-  return names[guard] || guard
-}
-
-function getGuardTagType(guard) {
-  const types = {
-    platform: 'primary',
-    merchant: 'success',
-    warehouse: 'warning',
-  }
-  return types[guard] || 'info'
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return '-'
-  const date = new Date(dateStr)
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 
 async function fetchRoleList() {
@@ -695,7 +644,7 @@ async function fetchRoleList() {
       stats.system = 0
     }
   } catch (error) {
-    console.error('获取角色列表失败:', error)
+    showError(error)
   } finally {
     loading.value = false
   }
@@ -710,7 +659,7 @@ async function fetchPermissionTree(guard) {
       isIndeterminate: false,
     }))
   } catch (error) {
-    console.error('获取权限列表失败:', error)
+    showError(error)
   }
 }
 
@@ -805,10 +754,10 @@ function handleDelete(row) {
     .then(async () => {
       try {
         await deleteRole(row.id)
-        ElMessage.success('删除成功')
+        showSuccess('删除成功')
         fetchRoleList()
       } catch (error) {
-        console.error('删除失败:', error)
+        showError(error)
       }
     })
     .catch(() => {})
@@ -825,12 +774,11 @@ async function handleToggleStatus(row, newStatus) {
   row._statusLoading = true
   try {
     await toggleRoleStatus(row.id)
-    ElMessage.success(newStatus ? '角色已启用' : '角色已禁用')
+    showSuccess(newStatus ? '角色已启用' : '角色已禁用')
     fetchRoleList()
   } catch (error) {
-    console.error('状态切换失败:', error)
+    showError(error)
     row.status = oldStatus
-    ElMessage.error('状态切换失败')
   } finally {
     row._statusLoading = false
   }
@@ -920,16 +868,16 @@ async function handleSubmit() {
 
         if (dialogType.value === 'create') {
           await createRole(data)
-          ElMessage.success('创建成功')
+          showSuccess('创建成功')
         } else if (dialogType.value === 'edit') {
           await updateRole(formData.id, data)
-          ElMessage.success('更新成功')
+          showSuccess('更新成功')
         }
 
         dialogVisible.value = false
         fetchRoleList()
       } catch (error) {
-        console.error('提交失败:', error)
+        showError(error)
       } finally {
         submitLoading.value = false
       }

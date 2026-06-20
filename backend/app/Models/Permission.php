@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\HasGuardScopes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Permission extends Model
 {
-    use HasFactory;
+    use HasFactory, HasGuardScopes;
 
     protected $fillable = [
         'name',
@@ -27,23 +28,8 @@ class Permission extends Model
         return $query->where('group', $group);
     }
 
-    public function scopeByGuard($query, string $guard)
+    public function scopeOrdered($query)
     {
-        return $query->where('guard', $guard);
-    }
-
-    public function scopePlatform($query)
-    {
-        return $query->where('guard', 'platform');
-    }
-
-    public function scopeMerchant($query)
-    {
-        return $query->where('guard', 'merchant');
-    }
-
-    public function scopeWarehouse($query)
-    {
-        return $query->where('guard', 'warehouse');
+        return $query->orderBy('guard')->orderBy('group')->orderBy('id');
     }
 }

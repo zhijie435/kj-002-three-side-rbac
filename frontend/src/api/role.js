@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import { withErrorHandler } from '@/utils/errorHandler'
 
 export function getRoleList(params) {
   return request({
@@ -75,4 +76,17 @@ export function createPermission(data) {
     method: 'post',
     data,
   })
+}
+
+export const roleApi = {
+  getRoleList: withErrorHandler(getRoleList, { defaultValue: { list: [], pagination: {}, stats: {} } }),
+  getRole: withErrorHandler(getRole),
+  createRole: withErrorHandler(createRole),
+  updateRole: withErrorHandler(updateRole),
+  deleteRole: withErrorHandler(deleteRole),
+  toggleRoleStatus: withErrorHandler(toggleRoleStatus),
+  getAllRoles: withErrorHandler(getAllRoles, { defaultValue: [] }),
+  getPermissionTree: withErrorHandler(getPermissionTree, { defaultValue: [] }),
+  getPermissionList: withErrorHandler(getPermissionList, { defaultValue: [] }),
+  createPermission: withErrorHandler(createPermission),
 }
