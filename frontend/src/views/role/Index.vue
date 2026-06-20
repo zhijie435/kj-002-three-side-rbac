@@ -934,6 +934,11 @@ async function handleSubmit() {
 }
 
 onMounted(() => {
+  const mainContent = document.querySelector('.main-content')
+  if (mainContent) {
+    mainContent.scrollTop = 0
+    mainContent.scrollLeft = 0
+  }
   calculateTableHeight()
   fetchRoleList()
   window.addEventListener('resize', handleResize)
@@ -946,7 +951,14 @@ onUnmounted(() => {
 
 <style scoped>
 .role-overview-page {
-  min-width: 900px;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.role-overview-page :deep(.el-table) {
+  width: 100%;
+  min-width: 800px;
 }
 
 .guard-tabs {
