@@ -561,10 +561,17 @@ async function fetchRoleList() {
     pagination.total = data.pagination.total
     pagination.total_pages = data.pagination.total_pages
 
-    stats.total = data.pagination.total
-    stats.active = roleList.value.filter((r) => r.status).length
-    stats.inactive = roleList.value.filter((r) => !r.status).length
-    stats.system = roleList.value.filter((r) => r.is_system).length
+    if (data.stats) {
+      stats.total = data.stats.total
+      stats.active = data.stats.active
+      stats.inactive = data.stats.inactive
+      stats.system = data.stats.system
+    } else {
+      stats.total = data.pagination.total
+      stats.active = roleList.value.filter((r) => r.status).length
+      stats.inactive = roleList.value.filter((r) => !r.status).length
+      stats.system = roleList.value.filter((r) => r.is_system).length
+    }
   } catch (error) {
     console.error('获取角色列表失败:', error)
   } finally {

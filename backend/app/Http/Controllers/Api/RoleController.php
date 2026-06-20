@@ -33,6 +33,24 @@ class RoleController extends Controller
         $perPage = $request->input('per_page', 15);
         $roles = $query->paginate($perPage);
 
+        $statsQuery = Role::query();
+        if ($request->filled('keyword')) {
+            $keyword = $request->input('keyword');
+            $statsQuery->where(function ($q) use ($keyword) {
+                $q->where('name', 'like', "%{$keyword}%")
+                    ->orWhere('display_name', 'like', "%{$keyword}%")
+                    ->orWhere('description', 'like', "%{$keyword}%");
+            });
+        }
+        if ($request->filled('status')) {
+            $statsQuery->where('status', $request->input('status') === '1');
+        }
+
+        $totalCount = (clone $statsQuery)->count();
+        $activeCount = (clone $statsQuery)->where('status', true)->count();
+        $inactiveCount = (clone $statsQuery)->where('status', false)->count();
+        $systemCount = (clone $statsQuery)->where('is_system', true)->count();
+
         return response()->json([
             'code' => 0,
             'message' => 'success',
@@ -43,6 +61,12 @@ class RoleController extends Controller
                     'page' => $roles->currentPage(),
                     'per_page' => $roles->perPage(),
                     'total_pages' => $roles->lastPage(),
+                ],
+                'stats' => [
+                    'total' => $totalCount,
+                    'active' => $activeCount,
+                    'inactive' => $inactiveCount,
+                    'system' => $systemCount,
                 ],
             ],
         ]);
