@@ -44,26 +44,30 @@ class RoleController extends Controller
             }
         };
 
+        $statusFilter = function ($q) use ($request) {
+            if ($request->filled('status')) {
+                $q->where('status', $request->input('status') === '1');
+            }
+        };
+
         $totalQuery = Role::query();
         $keywordFilter($totalQuery);
-        if ($request->filled('status')) {
-            $totalQuery->where('status', $request->input('status') === '1');
-        }
+        $statusFilter($totalQuery);
         $totalCount = $totalQuery->count();
 
         $activeQuery = Role::query();
         $keywordFilter($activeQuery);
+        $statusFilter($activeQuery);
         $activeCount = $activeQuery->where('status', true)->count();
 
         $inactiveQuery = Role::query();
         $keywordFilter($inactiveQuery);
+        $statusFilter($inactiveQuery);
         $inactiveCount = $inactiveQuery->where('status', false)->count();
 
         $systemQuery = Role::query();
         $keywordFilter($systemQuery);
-        if ($request->filled('status')) {
-            $systemQuery->where('status', $request->input('status') === '1');
-        }
+        $statusFilter($systemQuery);
         $systemCount = $systemQuery->where('is_system', true)->count();
 
         return response()->json([

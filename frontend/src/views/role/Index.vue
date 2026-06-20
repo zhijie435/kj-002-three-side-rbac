@@ -145,14 +145,19 @@
         </template>
       </el-table-column>
       <el-table-column prop="sort_order" label="排序" width="80" align="center" sortable />
-      <el-table-column label="状态" width="100" align="center">
+      <el-table-column label="状态" width="140" align="center">
         <template #default="{ row }">
-          <span
-            class="status-tag"
-            :class="row.status ? 'active' : 'inactive'"
-          >
-            {{ row.status ? '已启用' : '已禁用' }}
-          </span>
+          <div style="display: flex; align-items: center; justify-content: center; gap: 8px">
+            <el-switch
+              v-model="row.status"
+              :disabled="row.is_system"
+              :loading="row._statusLoading"
+              @change="(val) => handleToggleStatus(row, val)"
+              active-text="启用"
+              inactive-text="禁用"
+              inline-prompt
+            />
+          </div>
         </template>
       </el-table-column>
       <el-table-column label="类型" width="100" align="center">
@@ -360,12 +365,9 @@
           </span>
         </el-descriptions-item>
         <el-descriptions-item label="状态">
-          <span
-            class="status-tag"
-            :class="currentRole.status ? 'active' : 'inactive'"
-          >
+          <el-tag :type="currentRole.status ? 'success' : 'info'">
             {{ currentRole.status ? '已启用' : '已禁用' }}
-          </span>
+          </el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="排序">
           {{ currentRole.sort_order }}
@@ -591,7 +593,12 @@ async function fetchRoleList() {
       ...filterForm,
     }
     const data = await getRoleList(params)
-    roleList.value = data.list
+    roleList.value = data.list.map((row) => ({
+      ...row,
+      status: Boolean(row.status),
+      is_system: Boolean(row.is_system),
+      _statusLoading: false,
+    }))
     pagination.total = data.pagination.total
     pagination.total_pages = data.pagination.total_pages
 
@@ -602,9 +609,9 @@ async function fetchRoleList() {
       stats.system = data.stats.system
     } else {
       stats.total = data.pagination.total
-      stats.active = roleList.value.filter((r) => r.status).length
-      stats.inactive = roleList.value.filter((r) => !r.status).length
-      stats.system = roleList.value.filter((r) => r.is_system).length
+      stats.active = 0
+      stats.inactive = 0
+      stats.system = 0
     }
   } catch (error) {
     console.error('获取角色列表失败:', error)
@@ -664,9 +671,9 @@ async function handleEdit(row) {
   formData.name = row.name
   formData.display_name = row.display_name
   formData.description = row.description || ''
-  formData.status = row.status
+  formData.status = Boolean(row.status)
   formData.sort_order = row.sort_order
-  formData.is_system = row.is_system
+  formData.is_system = Boolean(row.is_system)
   formData.permissions = row.permissions ? row.permissions.map((p) => p.id) : []
 
   updatePermissionCheckStates()
@@ -676,14 +683,18 @@ async function handleEdit(row) {
 async function handleView(row) {
   await fetchPermissionTree()
   dialogType.value = 'view'
-  currentRole.value = row
+  currentRole.value = {
+    ...row,
+    status: Boolean(row.status),
+    is_system: Boolean(row.is_system),
+  }
   formData.id = row.id
   formData.name = row.name
   formData.display_name = row.display_name
   formData.description = row.description || ''
-  formData.status = row.status
+  formData.status = Boolean(row.status)
   formData.sort_order = row.sort_order
-  formData.is_system = row.is_system
+  formData.is_system = Boolean(row.is_system)
   formData.permissions = row.permissions ? row.permissions.map((p) => p.id) : []
 
   updatePermissionCheckStates()
@@ -710,6 +721,29 @@ function handleDelete(row) {
       }
     })
     .catch(() => {})
+}
+
+async function handleToggleStatus(row, newStatus) {
+  if (row.is_system) {
+    ElMessage.warning('系统内置角色不允许修改状态')
+    row.status = !newStatus
+    return
+  }
+
+  const oldStatus = !newStatus
+  row._statusLoading = true
+  try {
+    const result = await toggleRoleStatus(row.id)
+    row.status = result.data?.status ?? newStatus
+    ElMessage.success(row.status ? '角色已启用' : '角色已禁用')
+    fetchRoleList()
+  } catch (error) {
+    console.error('状态切换失败:', error)
+    row.status = oldStatus
+    ElMessage.error('状态切换失败')
+  } finally {
+    row._statusLoading = false
+  }
 }
 
 function resetForm() {
