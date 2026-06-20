@@ -447,18 +447,10 @@ function handleMockApi(config) {
       const total = filtered.length
       const start = (page - 1) * perPage
       const list = filtered.slice(start, start + perPage)
-      const total_all = params.guard
-        ? mockDatabase.roles.filter((r) => r.guard === params.guard).length
-        : mockDatabase.roles.length
-      const active_all = params.guard
-        ? mockDatabase.roles.filter((r) => r.guard === params.guard && r.status).length
-        : mockDatabase.roles.filter((r) => r.status).length
-      const inactive_all = params.guard
-        ? mockDatabase.roles.filter((r) => r.guard === params.guard && !r.status).length
-        : mockDatabase.roles.filter((r) => !r.status).length
-      const system_all = params.guard
-        ? mockDatabase.roles.filter((r) => r.guard === params.guard && r.is_system).length
-        : mockDatabase.roles.filter((r) => r.is_system).length
+      const total_all = filtered.length
+      const active_all = filtered.filter((r) => r.status).length
+      const inactive_all = filtered.filter((r) => !r.status).length
+      const system_all = filtered.filter((r) => r.is_system).length
       return {
         code: 0,
         message: 'success',

@@ -1,5 +1,5 @@
 <template>
-  <div class="page-container">
+  <div class="page-container role-overview-page">
     <div class="page-header">
       <div>
         <h2 class="page-title">角色全览</h2>
@@ -37,7 +37,7 @@
       </el-tab-pane>
     </el-tabs>
 
-    <el-row :gutter="16" style="margin-bottom: 20px">
+    <el-row :gutter="16" class="stats-row" style="margin-bottom: 20px">
       <el-col :xs="24" :sm="12" :md="12" :lg="6" :xl="6">
         <div class="stat-card">
           <div class="stat-icon primary">
@@ -498,6 +498,7 @@ const permissionTree = ref([])
 const formRef = ref(null)
 const tableMaxHeight = ref(400)
 const activeGuard = ref('platform')
+const mainContentEl = ref(null)
 
 const calculateTableHeight = () => {
   nextTick(() => {
@@ -508,6 +509,7 @@ const calculateTableHeight = () => {
     const filterBarHeight = 80
     const toolbarHeight = 50
     const paginationHeight = 60
+    const tabsHeight = 60
     const otherSpacing = 40
 
     const availableHeight =
@@ -519,6 +521,7 @@ const calculateTableHeight = () => {
       filterBarHeight -
       toolbarHeight -
       paginationHeight -
+      tabsHeight -
       otherSpacing
 
     tableMaxHeight.value = Math.max(availableHeight, 300)
@@ -694,9 +697,9 @@ async function fetchRoleList() {
   }
 }
 
-async function fetchPermissionTree() {
+async function fetchPermissionTree(guard) {
   try {
-    const data = await getPermissionTree({ guard: activeGuard.value })
+    const data = await getPermissionTree({ guard: guard || activeGuard.value })
     permissionTree.value = data.map((group) => ({
       ...group,
       checkedAll: false,
@@ -746,7 +749,7 @@ async function handleCreate() {
 }
 
 async function handleEdit(row) {
-  await fetchPermissionTree()
+  await fetchPermissionTree(row.guard || activeGuard.value)
   dialogType.value = 'edit'
   currentRole.value = row
   formData.id = row.id
@@ -764,7 +767,7 @@ async function handleEdit(row) {
 }
 
 async function handleView(row) {
-  await fetchPermissionTree()
+  await fetchPermissionTree(row.guard || activeGuard.value)
   dialogType.value = 'view'
   currentRole.value = {
     ...row,
@@ -942,6 +945,40 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.role-overview-page {
+  min-width: 900px;
+}
+
+.guard-tabs {
+  margin-bottom: 20px;
+}
+
+:deep(.guard-tabs .el-tabs__nav-wrap::after) {
+  background-color: #e4e7ed;
+}
+
+:deep(.guard-tabs .el-tabs__item) {
+  padding: 0 20px;
+  font-size: 14px;
+  height: 44px;
+  line-height: 44px;
+}
+
+:deep(.guard-tabs .el-tabs__active-bar) {
+  height: 3px;
+}
+
+.stats-row {
+  padding: 16px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 8px;
+}
+
+.stats-row .stat-card {
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
 .permission-config-wrapper {
   width: 100%;
 }
