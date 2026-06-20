@@ -11,11 +11,15 @@ class RoleController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Role::with(['permissions:id,name,display_name,group'])
+        $query = Role::with(['permissions:id,name,display_name,group,guard'])
             ->withCount([
                 'permissions as permission_count',
             ])
             ->ordered();
+
+        if ($request->filled('guard')) {
+            $query->byGuard($request->input('guard'));
+        }
 
         if ($request->filled('keyword')) {
             $keyword = $request->input('keyword');
@@ -44,6 +48,12 @@ class RoleController extends Controller
             }
         };
 
+        $guardFilter = function ($q) use ($request) {
+            if ($request->filled('guard')) {
+                $q->where('guard', $request->input('guard'));
+            }
+        };
+
         $statusFilter = function ($q) use ($request) {
             if ($request->filled('status')) {
                 $q->where('status', $request->input('status') === '1');
@@ -51,21 +61,25 @@ class RoleController extends Controller
         };
 
         $totalQuery = Role::query();
+        $guardFilter($totalQuery);
         $keywordFilter($totalQuery);
         $statusFilter($totalQuery);
         $totalCount = $totalQuery->count();
 
         $activeQuery = Role::query();
+        $guardFilter($activeQuery);
         $keywordFilter($activeQuery);
         $statusFilter($activeQuery);
         $activeCount = $activeQuery->where('status', true)->count();
 
         $inactiveQuery = Role::query();
+        $guardFilter($inactiveQuery);
         $keywordFilter($inactiveQuery);
         $statusFilter($inactiveQuery);
         $inactiveCount = $inactiveQuery->where('status', false)->count();
 
         $systemQuery = Role::query();
+        $guardFilter($systemQuery);
         $keywordFilter($systemQuery);
         $statusFilter($systemQuery);
         $systemCount = $systemQuery->where('is_system', true)->count();
@@ -93,7 +107,7 @@ class RoleController extends Controller
 
     public function show($id)
     {
-        $role = Role::with(['permissions:id,name,display_name,group'])
+        $role = Role::with(['permissions:id,name,display_name,group,guard'])
             ->findOrFail($id);
 
         return response()->json([
@@ -106,7 +120,8 @@ class RoleController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:50|unique:roles,name',
+            'name' => 'required|string|max:50',
+            'guard' => 'required|string|max:50|in:platform,merchant,warehouse',
             'display_name' => 'required|string|max:100',
             'description' => 'nullable|string|max:500',
             'status' => 'boolean',
@@ -115,7 +130,8 @@ class RoleController extends Controller
             'permissions.*' => 'exists:permissions,id',
         ], [
             'name.required' => '角色标识不能为空',
-            'name.unique' => '角色标识已存在',
+            'guard.required' => '守卫端不能为空',
+            'guard.in' => '守卫端值不正确',
             'display_name.required' => '角色名称不能为空',
         ]);
 
@@ -127,8 +143,19 @@ class RoleController extends Controller
             ], 422);
         }
 
+        $exists = Role::where('guard', $request->input('guard'))
+            ->where('name', $request->input('name'))
+            ->exists();
+        if ($exists) {
+            return response()->json([
+                'code' => 422,
+                'message' => '该守卫端下角色标识已存在',
+            ], 422);
+        }
+
         $role = Role::create([
             'name' => $request->input('name'),
+            'guard' => $request->input('guard'),
             'display_name' => $request->input('display_name'),
             'description' => $request->input('description'),
             'status' => $request->input('status', true),
@@ -136,10 +163,14 @@ class RoleController extends Controller
         ]);
 
         if ($request->filled('permissions')) {
-            $role->syncPermissions($request->input('permissions'));
+            $guardPermissions = Permission::where('guard', $request->input('guard'))
+                ->pluck('id')
+                ->toArray();
+            $validPermissions = array_intersect($request->input('permissions'), $guardPermissions);
+            $role->syncPermissions($validPermissions);
         }
 
-        $role->load(['permissions:id,name,display_name,group']);
+        $role->load(['permissions:id,name,display_name,group,guard']);
 
         return response()->json([
             'code' => 0,
@@ -160,7 +191,8 @@ class RoleController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'name' => 'string|max:50|unique:roles,name,' . $role->id,
+            'name' => 'string|max:50',
+            'guard' => 'string|max:50|in:platform,merchant,warehouse',
             'display_name' => 'string|max:100',
             'description' => 'nullable|string|max:500',
             'status' => 'boolean',
@@ -168,7 +200,7 @@ class RoleController extends Controller
             'permissions' => 'array',
             'permissions.*' => 'exists:permissions,id',
         ], [
-            'name.unique' => '角色标识已存在',
+            'guard.in' => '守卫端值不正确',
         ]);
 
         if ($validator->fails()) {
@@ -179,8 +211,24 @@ class RoleController extends Controller
             ], 422);
         }
 
+        if ($request->has('name') || $request->has('guard')) {
+            $guard = $request->input('guard', $role->guard);
+            $name = $request->input('name', $role->name);
+            $exists = Role::where('guard', $guard)
+                ->where('name', $name)
+                ->where('id', '!=', $role->id)
+                ->exists();
+            if ($exists) {
+                return response()->json([
+                    'code' => 422,
+                    'message' => '该守卫端下角色标识已存在',
+                ], 422);
+            }
+        }
+
         $role->update($request->only([
             'name',
+            'guard',
             'display_name',
             'description',
             'status',
@@ -188,10 +236,14 @@ class RoleController extends Controller
         ]));
 
         if ($request->has('permissions')) {
-            $role->syncPermissions($request->input('permissions', []));
+            $guardPermissions = Permission::where('guard', $role->guard)
+                ->pluck('id')
+                ->toArray();
+            $validPermissions = array_intersect($request->input('permissions', []), $guardPermissions);
+            $role->syncPermissions($validPermissions);
         }
 
-        $role->load(['permissions:id,name,display_name,group']);
+        $role->load(['permissions:id,name,display_name,group,guard']);
 
         return response()->json([
             'code' => 0,
@@ -241,11 +293,15 @@ class RoleController extends Controller
         ]);
     }
 
-    public function all()
+    public function all(Request $request)
     {
-        $roles = Role::active()
-            ->ordered()
-            ->get(['id', 'name', 'display_name']);
+        $query = Role::active()->ordered();
+
+        if ($request->filled('guard')) {
+            $query->byGuard($request->input('guard'));
+        }
+
+        $roles = $query->get(['id', 'name', 'guard', 'display_name']);
 
         return response()->json([
             'code' => 0,

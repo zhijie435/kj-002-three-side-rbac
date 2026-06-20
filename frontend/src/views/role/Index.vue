@@ -10,6 +10,33 @@
       </el-button>
     </div>
 
+    <el-tabs v-model="activeGuard" class="guard-tabs" @tab-change="handleGuardChange">
+      <el-tab-pane name="platform">
+        <template #label>
+          <span style="display: flex; align-items: center; gap: 6px">
+            <el-icon><Monitor /></el-icon>
+            平台端
+          </span>
+        </template>
+      </el-tab-pane>
+      <el-tab-pane name="merchant">
+        <template #label>
+          <span style="display: flex; align-items: center; gap: 6px">
+            <el-icon><Shop /></el-icon>
+            商家端
+          </span>
+        </template>
+      </el-tab-pane>
+      <el-tab-pane name="warehouse">
+        <template #label>
+          <span style="display: flex; align-items: center; gap: 6px">
+            <el-icon><Box /></el-icon>
+            仓库端
+          </span>
+        </template>
+      </el-tab-pane>
+    </el-tabs>
+
     <el-row :gutter="16" style="margin-bottom: 20px">
       <el-col :xs="24" :sm="12" :md="12" :lg="6" :xl="6">
         <div class="stat-card">
@@ -230,6 +257,20 @@
       >
         <el-row :gutter="20">
           <el-col :span="12">
+            <el-form-item label="守卫端" prop="guard">
+              <el-select
+                v-model="formData.guard"
+                placeholder="请选择守卫端"
+                :disabled="isView || dialogType === 'edit'"
+                style="width: 100%"
+              >
+                <el-option label="平台端" value="platform" />
+                <el-option label="商家端" value="merchant" />
+                <el-option label="仓库端" value="warehouse" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
             <el-form-item label="角色标识" prop="name">
               <el-input
                 v-model="formData.name"
@@ -240,6 +281,8 @@
               />
             </el-form-item>
           </el-col>
+        </el-row>
+        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="角色名称" prop="display_name">
               <el-input
@@ -251,8 +294,6 @@
               />
             </el-form-item>
           </el-col>
-        </el-row>
-        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="排序">
               <el-input-number
@@ -264,6 +305,8 @@
               />
             </el-form-item>
           </el-col>
+        </el-row>
+        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="状态">
               <el-switch
@@ -347,6 +390,11 @@
       width="600px"
     >
       <el-descriptions :column="1" border v-if="currentRole">
+        <el-descriptions-item label="守卫端">
+          <el-tag :type="getGuardTagType(currentRole.guard)">
+            {{ getGuardName(currentRole.guard) }}
+          </el-tag>
+        </el-descriptions-item>
         <el-descriptions-item label="角色标识">
           <el-tag type="primary">{{ currentRole.name }}</el-tag>
         </el-descriptions-item>
@@ -427,6 +475,8 @@ import {
   Box,
   DataAnalysis,
   Setting,
+  Monitor,
+  Shop,
 } from '@element-plus/icons-vue'
 import {
   getRoleList,
@@ -447,6 +497,7 @@ const roleList = ref([])
 const permissionTree = ref([])
 const formRef = ref(null)
 const tableMaxHeight = ref(400)
+const activeGuard = ref('platform')
 
 const calculateTableHeight = () => {
   nextTick(() => {
@@ -500,6 +551,7 @@ const stats = reactive({
 const formData = reactive({
   id: null,
   name: '',
+  guard: 'platform',
   display_name: '',
   description: '',
   status: true,
@@ -568,8 +620,29 @@ function getGroupName(group) {
     inventory: '库存管理',
     system: '系统设置',
     dashboard: '数据面板',
+    merchant: '商家管理',
+    staff: '员工管理',
+    warehouse: '仓库管理',
   }
   return names[group] || group
+}
+
+function getGuardName(guard) {
+  const names = {
+    platform: '平台端',
+    merchant: '商家端',
+    warehouse: '仓库端',
+  }
+  return names[guard] || guard
+}
+
+function getGuardTagType(guard) {
+  const types = {
+    platform: 'primary',
+    merchant: 'success',
+    warehouse: 'warning',
+  }
+  return types[guard] || 'info'
 }
 
 function formatDate(dateStr) {
@@ -588,6 +661,7 @@ async function fetchRoleList() {
   loading.value = true
   try {
     const params = {
+      guard: activeGuard.value,
       page: pagination.page,
       per_page: pagination.per_page,
       ...filterForm,
@@ -622,7 +696,7 @@ async function fetchRoleList() {
 
 async function fetchPermissionTree() {
   try {
-    const data = await getPermissionTree()
+    const data = await getPermissionTree({ guard: activeGuard.value })
     permissionTree.value = data.map((group) => ({
       ...group,
       checkedAll: false,
@@ -631,6 +705,11 @@ async function fetchPermissionTree() {
   } catch (error) {
     console.error('获取权限列表失败:', error)
   }
+}
+
+function handleGuardChange() {
+  pagination.page = 1
+  fetchRoleList()
 }
 
 function handleSearch() {
@@ -660,6 +739,7 @@ async function handleCreate() {
   await fetchPermissionTree()
   dialogType.value = 'create'
   resetForm()
+  formData.guard = activeGuard.value
   dialogVisible.value = true
 }
 
@@ -669,6 +749,7 @@ async function handleEdit(row) {
   currentRole.value = row
   formData.id = row.id
   formData.name = row.name
+  formData.guard = row.guard || activeGuard.value
   formData.display_name = row.display_name
   formData.description = row.description || ''
   formData.status = Boolean(row.status)
@@ -690,6 +771,7 @@ async function handleView(row) {
   }
   formData.id = row.id
   formData.name = row.name
+  formData.guard = row.guard || activeGuard.value
   formData.display_name = row.display_name
   formData.description = row.description || ''
   formData.status = Boolean(row.status)
@@ -749,6 +831,7 @@ async function handleToggleStatus(row, newStatus) {
 function resetForm() {
   formData.id = null
   formData.name = ''
+  formData.guard = activeGuard.value
   formData.display_name = ''
   formData.description = ''
   formData.status = true
@@ -819,6 +902,7 @@ async function handleSubmit() {
       try {
         const data = {
           name: formData.name,
+          guard: formData.guard,
           display_name: formData.display_name,
           description: formData.description,
           status: formData.status,

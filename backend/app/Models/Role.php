@@ -12,6 +12,7 @@ class Role extends Model
 
     protected $fillable = [
         'name',
+        'guard',
         'display_name',
         'description',
         'is_system',
@@ -52,5 +53,25 @@ class Role extends Model
     public function scopeOrdered($query)
     {
         return $query->orderBy('sort_order', 'asc')->orderBy('id', 'desc');
+    }
+
+    public function scopeByGuard($query, string $guard)
+    {
+        return $query->where('guard', $guard);
+    }
+
+    public function scopePlatform($query)
+    {
+        return $query->where('guard', 'platform');
+    }
+
+    public function scopeMerchant($query)
+    {
+        return $query->where('guard', 'merchant');
+    }
+
+    public function scopeWarehouse($query)
+    {
+        return $query->where('guard', 'warehouse');
     }
 }

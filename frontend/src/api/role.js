@@ -52,10 +52,11 @@ export function getAllRoles() {
   })
 }
 
-export function getPermissionTree() {
+export function getPermissionTree(params) {
   return request({
     url: '/permissions/all',
     method: 'get',
+    params,
   })
 }
 
