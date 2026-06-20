@@ -496,14 +496,16 @@ function handleMockApi(config) {
       return { code: 0, message: 'success', data: result }
     }
 
+    const allPermissionsFlat = Object.values(mockDatabase.permissions).flatMap((guardGroups) =>
+      Object.values(guardGroups).flat()
+    )
+
     if (method === 'post') {
-      const dup = Object.values(mockDatabase.permissions).flat().find(
+      const dup = allPermissionsFlat.find(
         (p) => p.guard === data.guard && p.name === data.name
       )
       if (dup) return { code: 422, message: '该守卫端下权限标识已存在' }
-      const guardPerms = mockDatabase.permissions[data.guard] || {}
-      const groupPerms = guardPerms[data.group] || []
-      const maxId = Math.max(...Object.values(mockDatabase.permissions).flat().map((p) => p.id), 0)
+      const maxId = allPermissionsFlat.length > 0 ? Math.max(...allPermissionsFlat.map((p) => p.id)) : 0
       const newPerm = {
         id: maxId + 1,
         name: data.name,

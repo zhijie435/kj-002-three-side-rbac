@@ -45,10 +45,11 @@ export function toggleRoleStatus(id) {
   })
 }
 
-export function getAllRoles() {
+export function getAllRoles(params) {
   return request({
     url: '/roles/all',
     method: 'get',
+    params,
   })
 }
 

@@ -708,6 +708,8 @@ async function fetchPermissionTree() {
 }
 
 function handleGuardChange() {
+  filterForm.keyword = ''
+  filterForm.status = ''
   pagination.page = 1
   fetchRoleList()
 }
@@ -815,9 +817,8 @@ async function handleToggleStatus(row, newStatus) {
   const oldStatus = !newStatus
   row._statusLoading = true
   try {
-    const result = await toggleRoleStatus(row.id)
-    row.status = result.data?.status ?? newStatus
-    ElMessage.success(row.status ? '角色已启用' : '角色已禁用')
+    await toggleRoleStatus(row.id)
+    ElMessage.success(newStatus ? '角色已启用' : '角色已禁用')
     fetchRoleList()
   } catch (error) {
     console.error('状态切换失败:', error)
