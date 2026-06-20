@@ -179,6 +179,8 @@
               v-model="row.status"
               :disabled="row.is_system"
               :loading="row._statusLoading"
+              :active-value="true"
+              :inactive-value="false"
               @change="(val) => handleToggleStatus(row, val)"
               active-text="启用"
               inactive-text="禁用"
@@ -312,6 +314,8 @@
               <el-switch
                 v-model="formData.status"
                 :disabled="isView || formData.is_system"
+                :active-value="true"
+                :inactive-value="false"
                 active-text="启用"
                 inactive-text="禁用"
               />
